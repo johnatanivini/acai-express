@@ -1,5 +1,5 @@
 import { useState } from '#app'
-import { computed } from 'vue'
+import { computed, watch, onMounted } from 'vue'
 
 export const useCart = () => {
   const cart = useState('cart', () => [])
@@ -7,15 +7,25 @@ export const useCart = () => {
   const isBuilderModalOpen = useState('isBuilderModalOpen', () => false)
   const currentProduct = useState('currentProduct', () => null)
 
-  // Calcula o total do carrinho considerando as quantidades
+  // 1. Carrega o carrinho do cache do navegador quando o app inicia no cliente
+  onMounted(() => {
+    const savedCart = localStorage.getItem('acai_express_cart')
+    if (savedCart) {
+      cart.value = JSON.parse(savedCart)
+    }
+  })
+
+  // 2. Fica escutando qualquer mudança no carrinho e salva no cache automaticamente
+  // O { deep: true } é essencial para ele perceber mudanças dentro dos objetos (como quantidade)
+  watch(cart, (newCart) => {
+    localStorage.setItem('acai_express_cart', JSON.stringify(newCart))
+  }, { deep: true })
+
   const cartTotal = computed(() => {
     return cart.value.reduce((total, item) => total + (item.unitPrice * item.quantity), 0)
   })
 
-  // Adiciona ou incrementa no carrinho
   const addToCart = (customizedItem) => {
-    // Tenta achar um item idêntico (mesmo produto, mesmo tamanho, mesmos extras)
-   // Localize a variável existingItemIndex e atualize para ficar assim:
     const existingItemIndex = cart.value.findIndex(item => 
       item.name === customizedItem.name &&
       item.size?.name === customizedItem.size?.name &&
@@ -42,10 +52,9 @@ export const useCart = () => {
     }
   }
 
-  // Gera a mensagem para o WhatsApp
   const checkoutWhatsApp = () => {
     let text = "🛵 *Novo Pedido - Açaí Express*\n\n"
-    cart.value.forEach((item, index) => {
+    cart.value.forEach((item) => {
       text += `*${item.quantity}x ${item.name} (${item.size.name})*\n`
       if (item.extras && item.extras.length > 0) {
         const extraNames = item.extras.map(e => e.name).join(', ')
@@ -55,9 +64,14 @@ export const useCart = () => {
     })
     text += `*Total do Pedido: R$ ${cartTotal.value.toFixed(2).replace('.', ',')}*`
     
-    const phone = "5585987543565" // Substitua pelo seu
+    const phone = "5511999999999" // Substitua pelo seu número
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
     window.open(url, '_blank')
+
+    // 3. Limpa o carrinho e fecha o modal após enviar o pedido
+    // Como o 'watch' está ativo, o localStorage também será esvaziado automaticamente
+    cart.value = []
+    isCartModalOpen.value = false
   }
 
   return { 
