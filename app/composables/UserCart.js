@@ -6,8 +6,15 @@ export const useCart = () => {
   const isCartModalOpen = useState('isCartModalOpen', () => false)
   const isBuilderModalOpen = useState('isBuilderModalOpen', () => false)
   const currentProduct = useState('currentProduct', () => null)
+  
+  // Novo estado para o endereço
+  const address = useState('address', () => ({
+    rua: '',
+    numero: '',
+    bairro: '',
+    complemento: ''
+  }))
 
-  // 1. Carrega o carrinho do cache do navegador quando o app inicia no cliente
   onMounted(() => {
     const savedCart = localStorage.getItem('acai_express_cart')
     if (savedCart) {
@@ -15,8 +22,6 @@ export const useCart = () => {
     }
   })
 
-  // 2. Fica escutando qualquer mudança no carrinho e salva no cache automaticamente
-  // O { deep: true } é essencial para ele perceber mudanças dentro dos objetos (como quantidade)
   watch(cart, (newCart) => {
     localStorage.setItem('acai_express_cart', JSON.stringify(newCart))
   }, { deep: true })
@@ -53,23 +58,44 @@ export const useCart = () => {
   }
 
   const checkoutWhatsApp = () => {
-    let text = "🛵 *Novo Pedido - Açaí Express*\n\n"
+    // Usar um Array garante que as quebras de linha sejam processadas corretamente
+    const lines = []
+    
+    lines.push("🛵 *Novo Pedido - Açaí Express*")
+    lines.push("") // Linha em branco
+    
     cart.value.forEach((item) => {
-      text += `*${item.quantity}x ${item.name} (${item.size.name})*\n`
+      // Proteção extra com ?. no tamanho caso algum item antigo esteja no cache
+      lines.push(`*${item.quantity}x ${item.name} (${item.size?.name || ''})*`)
+      
       if (item.extras && item.extras.length > 0) {
         const extraNames = item.extras.map(e => e.name).join(', ')
-        text += `   ↳ Extras: ${extraNames}\n`
+        lines.push(`   ↳ Extras: ${extraNames}`)
       }
-      text += `   ↳ Valor: R$ ${(item.unitPrice * item.quantity).toFixed(2).replace('.', ',')}\n\n`
+      lines.push(`   ↳ Valor: R$ ${(item.unitPrice * item.quantity).toFixed(2).replace('.', ',')}`)
+      lines.push("") // Linha em branco separando os produtos
     })
-    text += `*Total do Pedido: R$ ${cartTotal.value.toFixed(2).replace('.', ',')}*`
     
-    const phone = "5511999999999" // Substitua pelo seu número
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
+    // Adiciona o endereço
+    lines.push("📍 *Endereço de Entrega:*")
+    lines.push(`${address.value.rua}, ${address.value.numero}`)
+    lines.push(`Bairro: ${address.value.bairro}`)
+    if (address.value.complemento) {
+      lines.push(`Complemento: ${address.value.complemento}`)
+    }
+    
+    lines.push("") // Linha em branco
+    lines.push(`*Total do Pedido: R$ ${cartTotal.value.toFixed(2).replace('.', ',')}*`)
+    
+    const phone = "5511999999999" // Não esqueça de colocar seu número aqui
+    
+    // Junta tudo com quebra de linha e converte no formato perfeito para URLs
+    const text = encodeURIComponent(lines.join('\n'))
+    const url = `https://wa.me/${phone}?text=${text}`
+    
     window.open(url, '_blank')
 
-    // 3. Limpa o carrinho e fecha o modal após enviar o pedido
-    // Como o 'watch' está ativo, o localStorage também será esvaziado automaticamente
+    // Limpa o estado e o carrinho
     cart.value = []
     isCartModalOpen.value = false
   }
@@ -80,6 +106,7 @@ export const useCart = () => {
     isCartModalOpen, 
     isBuilderModalOpen, 
     currentProduct,
+    address, // Exportando o endereço para o Modal usar
     addToCart,
     removeFromCart,
     updateQuantity,
