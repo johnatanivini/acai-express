@@ -1,30 +1,61 @@
+import { useState } from '#app'
+import { computed } from 'vue'
+
 export const useCart = () => {
-  // Estado global para o carrinho e modais
   const cart = useState('cart', () => [])
   const isCartModalOpen = useState('isCartModalOpen', () => false)
   const isBuilderModalOpen = useState('isBuilderModalOpen', () => false)
   const currentProduct = useState('currentProduct', () => null)
 
-  // Cálculo automático do valor total
+  // Calcula o total do carrinho considerando as quantidades
   const cartTotal = computed(() => {
-    return cart.value.reduce((total, item) => total + item.price, 0)
+    return cart.value.reduce((total, item) => total + (item.unitPrice * item.quantity), 0)
   })
 
-  // Adicionar ao carrinho
-  const addToCart = (item) => {
-    cart.value.push(item)
+  // Adiciona ou incrementa no carrinho
+  const addToCart = (customizedItem) => {
+    // Tenta achar um item idêntico (mesmo produto, mesmo tamanho, mesmos extras)
+   // Localize a variável existingItemIndex e atualize para ficar assim:
+    const existingItemIndex = cart.value.findIndex(item => 
+      item.name === customizedItem.name &&
+      item.size?.name === customizedItem.size?.name &&
+      JSON.stringify(item.extras) === JSON.stringify(customizedItem.extras)
+    )
+
+    if (existingItemIndex > -1) {
+      cart.value[existingItemIndex].quantity += 1
+    } else {
+      cart.value.push(customizedItem)
+    }
     isBuilderModalOpen.value = false
   }
 
-  // Redirecionar para o WhatsApp
+  const removeFromCart = (cartId) => {
+    cart.value = cart.value.filter(item => item.cartId !== cartId)
+  }
+
+  const updateQuantity = (cartId, delta) => {
+    const item = cart.value.find(item => item.cartId === cartId)
+    if (item) {
+      item.quantity += delta
+      if (item.quantity <= 0) removeFromCart(cartId)
+    }
+  }
+
+  // Gera a mensagem para o WhatsApp
   const checkoutWhatsApp = () => {
-    let text = "Olá! Gostaria de fazer o seguinte pedido:\n\n"
+    let text = "🛵 *Novo Pedido - Açaí Express*\n\n"
     cart.value.forEach((item, index) => {
-      text += `${index + 1}. ${item.name} - R$ ${item.price.toFixed(2)}\n`
+      text += `*${item.quantity}x ${item.name} (${item.size.name})*\n`
+      if (item.extras && item.extras.length > 0) {
+        const extraNames = item.extras.map(e => e.name).join(', ')
+        text += `   ↳ Extras: ${extraNames}\n`
+      }
+      text += `   ↳ Valor: R$ ${(item.unitPrice * item.quantity).toFixed(2).replace('.', ',')}\n\n`
     })
-    text += `\n*Total: R$ ${cartTotal.value.toFixed(2)}*`
+    text += `*Total do Pedido: R$ ${cartTotal.value.toFixed(2).replace('.', ',')}*`
     
-    const phone = "5511999999999" // Substitua pelo número da loja
+    const phone = "5585987543565" // Substitua pelo seu
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
     window.open(url, '_blank')
   }
@@ -35,7 +66,9 @@ export const useCart = () => {
     isCartModalOpen, 
     isBuilderModalOpen, 
     currentProduct,
-    addToCart, 
+    addToCart,
+    removeFromCart,
+    updateQuantity,
     checkoutWhatsApp 
   }
 }

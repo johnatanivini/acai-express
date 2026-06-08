@@ -1,34 +1,53 @@
 <template>
-  <div v-if="isCartModalOpen" class="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center p-4 z-50">
-    <div class="bg-gray-800 rounded-lg max-w-md w-full p-6 text-white shadow-xl">
-      <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-        <h2 class="text-xl font-bold">Seu Pedido</h2>
+  <div v-if="isCartModalOpen" class="fixed inset-0 bg-black/80 flex justify-center items-end sm:items-center z-50 p-0 sm:p-4 transition-opacity">
+    <div class="bg-[#120822] sm:rounded-2xl rounded-t-2xl max-w-lg w-full h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col text-white shadow-2xl overflow-hidden border border-[#2a1c44]">
+      
+      <div class="p-5 flex justify-between items-center border-b border-[#2a1c44] bg-[#1a0f2e]">
+        <h2 class="text-xl font-bold flex items-center gap-2">🛍️ Meu Carrinho</h2>
         <button @click="isCartModalOpen = false" class="text-gray-400 hover:text-white text-2xl">&times;</button>
       </div>
 
-      <div v-if="cart.length === 0" class="text-center py-8 text-gray-400">
-        Seu carrinho está vazio.
+      <div v-if="cart.length === 0" class="flex-grow flex flex-col justify-center items-center text-gray-400 p-8">
+        <span class="text-5xl mb-4">🛒</span>
+        <p>Seu carrinho está vazio.</p>
       </div>
 
-      <ul v-else class="space-y-4 max-h-60 overflow-y-auto mb-4 pr-2">
-        <li v-for="item in cart" :key="item.cartId" class="flex justify-between border-b border-gray-700 pb-2">
-          <div>
-            <p class="font-semibold">{{ item.name }}</p>
-            <p class="text-xs text-gray-400" v-if="item.extras?.length">
-              Com: {{ item.extras.join(', ') }}
-            </p>
-          </div>
-          <span class="text-green-400">R$ {{ item.price.toFixed(2) }}</span>
-        </li>
-      </ul>
+      <div v-else class="p-5 overflow-y-auto flex-grow scrollbar-thin space-y-4">
+        <div v-for="item in cart" :key="item.cartId" class="bg-[#1c1132] border border-[#2a1c44] rounded-xl p-4 flex gap-4 relative">
+          
+          <button @click="removeFromCart(item.cartId)" class="absolute top-4 right-4 text-gray-500 hover:text-red-400">
+            🗑️
+          </button>
 
-      <div class="mt-6 pt-4 border-t border-gray-700">
-        <div class="flex justify-between font-bold text-lg mb-4">
-          <span>Total:</span>
-          <span class="text-green-400">R$ {{ cartTotal.toFixed(2) }}</span>
+          <div class="text-3xl bg-[#2a1c44] w-12 h-12 flex items-center justify-center rounded-lg">{{ item.icon }}</div>
+          
+          <div class="flex-grow pr-6">
+            <h3 class="font-bold text-sm">{{ item.name }} 
+            <span v-if="item.size">({{ item.size?.name }})</span></h3>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2" v-if="item.extras.length">
+              {{ item.extras.map(e => e.name).join(', ') }}
+            </p>
+            
+            <div class="flex justify-between items-end mt-3">
+              <span class="text-[#d92794] font-bold">R$ {{ (item.unitPrice * item.quantity).toFixed(2).replace('.', ',') }}</span>
+              
+              <div class="flex items-center gap-3 bg-[#120822] rounded-lg p-1 border border-[#2a1c44]">
+                <button @click="updateQuantity(item.cartId, -1)" class="w-6 h-6 rounded-md bg-[#2a1c44] flex items-center justify-center hover:bg-[#4a3275]">-</button>
+                <span class="text-sm font-bold w-4 text-center">{{ item.quantity }}</span>
+                <button @click="updateQuantity(item.cartId, 1)" class="w-6 h-6 rounded-md bg-[#2a1c44] flex items-center justify-center hover:bg-[#4a3275]">+</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <button @click="checkoutWhatsApp" :disabled="cart.length === 0" class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-3 rounded font-bold text-lg transition flex justify-center items-center gap-2">
-          Finalizar no WhatsApp
+      </div>
+
+      <div class="p-5 border-t border-[#2a1c44] bg-[#1a0f2e]">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-gray-400">Total</span>
+          <span class="text-2xl font-bold">R$ {{ cartTotal.toFixed(2).replace('.', ',') }}</span>
+        </div>
+        <button @click="checkoutWhatsApp" :disabled="cart.length === 0" class="w-full bg-[#c31f75] hover:bg-[#a1165e] disabled:bg-gray-700 disabled:text-gray-400 py-4 rounded-xl font-bold text-lg transition-colors flex justify-center items-center gap-2 shadow-lg">
+          Finalizar Pedido
         </button>
       </div>
     </div>
@@ -36,5 +55,5 @@
 </template>
 
 <script setup>
-const { cart, cartTotal, isCartModalOpen, checkoutWhatsApp } = useCart()
+const { cart, cartTotal, isCartModalOpen, removeFromCart, updateQuantity, checkoutWhatsApp } = useCart()
 </script>
