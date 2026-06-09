@@ -16,6 +16,7 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # Instala as extensões vitais para o Laravel e MySQL
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
+RUN usermod -u 1000 www-data && groupmod -g 1000 www-data
 # Copia o Composer oficial para dentro do container
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -23,6 +24,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www
 
 # ... (conteúdo anterior do seu Dockerfile) ...
+
 
 # Copia o script de entrypoint para o container
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -23,12 +23,13 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
+        'role', // super_admin, store_admin, customer
+        'store_id',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Campos que devem ficar ocultos quando o model for convertido para JSON (API).
      */
     protected $hidden = [
         'password',
@@ -36,15 +37,37 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Conversão automática de tipos.
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+
+    // Um usuário (seja admin ou cliente) pertence a uma loja (Tenant)
+    public function store()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Store::class);
+    }
+
+    // Um usuário (cliente) pode ter feito vários pedidos
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isStoreAdmin(): bool
+    {
+        return $this->role === 'store_admin';
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer';
     }
 }
