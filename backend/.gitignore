@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Archives
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
