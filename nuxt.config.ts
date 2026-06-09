@@ -8,5 +8,15 @@ export default defineNuxtConfig({
     ],
   },
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true }
+  devtools: { enabled: true },
+  runtimeConfig: {
+    // Variáveis privadas (rodam apenas no servidor Node do Nuxt)
+    apiSecret: '', 
+    
+    public: {
+      // Variáveis públicas (vão para o navegador do cliente)
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL,
+      storageUrl: process.env.NUXT_PUBLIC_STORAGE_URL,
+    }
+  }
 })
