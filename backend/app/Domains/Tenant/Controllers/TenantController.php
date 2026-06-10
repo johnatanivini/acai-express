@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Domais\Catalog\Controllers;
+namespace App\Domains\Tenant\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class CatalogController extends Controller
+class TenantController extends Controller
 {
     //
 }
