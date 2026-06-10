@@ -15,8 +15,12 @@ export default defineNuxtConfig({
     
     public: {
       // Variáveis públicas (vão para o navegador do cliente)
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL,
-      storageUrl: process.env.NUXT_PUBLIC_STORAGE_URL,
+      apiBaseUrl:'',
+      storageUrl: '',
+      frontendSecret: '',
     }
-  }
+  },
+  debug: true,
 })
+
+

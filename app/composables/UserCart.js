@@ -1,13 +1,19 @@
+// composables/useCart.js
 import { useState } from '#app'
 import { computed, watch, onMounted } from 'vue'
 
 export const useCart = () => {
+  const route = useRoute()
   const cart = useState('cart', () => [])
   const isCartModalOpen = useState('isCartModalOpen', () => false)
   const isBuilderModalOpen = useState('isBuilderModalOpen', () => false)
   const currentProduct = useState('currentProduct', () => null)
   
-  // Novo estado para o endereço
+  // Dados do cliente coletados no checkout
+  const customerName = useState('customerName', () => '')
+  const customerWhatsapp = useState('customerWhatsapp', () => '')
+  const paymentMethod = useState('paymentMethod', () => 'pix') // pix, money, card
+
   const address = useState('address', () => ({
     rua: '',
     numero: '',
@@ -31,14 +37,18 @@ export const useCart = () => {
   })
 
   const addToCart = (customizedItem) => {
+    // Garante um ID único temporário para o item no carrinho se não existir
+    if (!customizedItem.cartId) {
+      customizedItem.cartId = Date.now() + Math.random().toString(36).substr(2, 9)
+    }
+
     const existingItemIndex = cart.value.findIndex(item => 
-      item.name === customizedItem.name &&
-      item.size?.name === customizedItem.size?.name &&
+      item.id === customizedItem.id &&
       JSON.stringify(item.extras) === JSON.stringify(customizedItem.extras)
     )
 
     if (existingItemIndex > -1) {
-      cart.value[existingItemIndex].quantity += 1
+      cart.value[existingItemIndex].quantity += customizedItem.quantity
     } else {
       cart.value.push(customizedItem)
     }
@@ -57,47 +67,96 @@ export const useCart = () => {
     }
   }
 
-  const checkoutWhatsApp = () => {
-    // Usar um Array garante que as quebras de linha sejam processadas corretamente
-    const lines = []
-    
-    lines.push("🛵 *Novo Pedido - Açaí Express*")
-    lines.push("") // Linha em branco
-    
-    cart.value.forEach((item) => {
-      // Proteção extra com ?. no tamanho caso algum item antigo esteja no cache
-      lines.push(`*${item.quantity}x ${item.name} (${item.size?.name || ''})*`)
-      
-      if (item.extras && item.extras.length > 0) {
-        const extraNames = item.extras.map(e => e.name).join(', ')
-        lines.push(`   ↳ Extras: ${extraNames}`)
-      }
-      lines.push(`   ↳ Valor: R$ ${(item.unitPrice * item.quantity).toFixed(2).replace('.', ',')}`)
-      lines.push("") // Linha em branco separando os produtos
-    })
-    
-    // Adiciona o endereço
-    lines.push("📍 *Endereço de Entrega:*")
-    lines.push(`${address.value.rua}, ${address.value.numero}`)
-    lines.push(`Bairro: ${address.value.bairro}`)
-    if (address.value.complemento) {
-      lines.push(`Complemento: ${address.value.complemento}`)
-    }
-    
-    lines.push("") // Linha em branco
-    lines.push(`*Total do Pedido: R$ ${cartTotal.value.toFixed(2).replace('.', ',')}*`)
-    
-    const phone = "5511999999999" // Não esqueça de colocar seu número aqui
-    
-    // Junta tudo com quebra de linha e converte no formato perfeito para URLs
-    const text = encodeURIComponent(lines.join('\n'))
-    const url = `https://wa.me/${phone}?text=${text}`
-    
-    window.open(url, '_blank')
-
-    // Limpa o estado e o carrinho
+  /**
+   * LIMPA O CARRINHO APÓS SUCESSO
+   */
+  const clearCart = () => {
     cart.value = []
+    customerName.value = ''
+    customerWhatsapp.value = ''
+    address.value = { rua: '', numero: '', bairro: '', complemento: '' }
     isCartModalOpen.value = false
+  }
+
+  /**
+   * EXECUTA O CHECKOUT INTEGRADO (BANCO DE DADOS + WHATSAPP)
+   */
+  const executeCheckout = async (storeData) => {
+    if (cart.value.length === 0) return alert('Seu carrinho está vazio!')
+    if (!customerName.value || !address.value.rua) return alert('Por favor, preencha o nome e o endereço de entrega!')
+
+    const slug = route.params.slug // Pega o slug da URL atual dinamicamente
+
+    // 1. Monta o payload exato que o nosso Laravel espera receber
+    const payload = {
+      customer_name: customerName.value,
+      customer_whatsapp: customerWhatsapp.value,
+      payment_method: paymentMethod.value,
+      delivery_address: `${address.value.rua}, ${address.value.numero} - ${address.value.bairro} ${address.value.complemento ? '(' + address.value.complemento + ')' : ''}`,
+      items: cart.value.map(item => ({
+        product_id: item.id, // ID real vindo do banco
+        quantity: item.quantity,
+        extras: item.extras ? item.extras.map(e => e.id) : [] // Array de IDs de adicionais reais
+      }))
+    }
+
+    try {
+      // 2. Dispara a gravação persistente na cozinha do Laravel
+      const { data, error } = await useApi(`/tenant/${slug}/orders`, {
+        method: 'POST',
+        body: payload
+      })
+
+      if (error.value) {
+        alert('Erro ao registrar pedido na cozinha: ' + (error.value.data?.message || 'Tente novamente.'))
+        return false
+      }
+
+      // 3. Se gravou no banco de dados com sucesso, dispara o texto do WhatsApp para o lojista
+      const lines = []
+      lines.push(`✅ *PEDIDO REGISTRADO COZINHA #${data.value.order_id}*`)
+      lines.push("📢 *Novo Pedido vindo do Cardápio Online*")
+      lines.push("")
+      lines.push(`👤 *Cliente:* ${customerName.value}`)
+      lines.push(`📞 *WhatsApp:* ${customerWhatsapp.value}`)
+      lines.push(`💳 *Forma de Pagamento:* ${paymentMethod.value.toUpperCase()}`)
+      lines.push("")
+
+      cart.value.forEach((item) => {
+        lines.push(`*${item.quantity}x ${item.name}*`)
+        if (item.extras && item.extras.length > 0) {
+          const extraNames = item.extras.map(e => e.name).join(', ')
+          lines.push(`   ↳ Adicionais: ${extraNames}`)
+        }
+        lines.push(`   ↳ Subtotal: R$ ${(item.unitPrice * item.quantity).toFixed(2).replace('.', ',')}`)
+        lines.push("")
+      })
+
+      lines.push("📍 *Endereço de Entrega:*")
+      lines.push(`${address.value.rua}, ${address.value.numero}`)
+      lines.push(`Bairro: ${address.value.bairro}`)
+      if (address.value.complemento) lines.push(`Comp: ${address.value.complemento}`)
+      lines.push("")
+      lines.push(`*Total Geral: R$ ${cartTotal.value.toFixed(2).replace('.', ',')}*`)
+
+      // Pega o número do WhatsApp dinâmico da loja que veio da API do catálogo
+      const storePhone = storeData.whatsapp_number || "5511999999999"
+      
+      const text = encodeURIComponent(lines.join('\n'))
+      const whatsappUrl = `https://wa.me/${storePhone}?text=${text}`
+      
+      // Abre o app do WhatsApp
+      window.open(whatsappUrl, '_blank')
+
+      // Limpa os estados locais do carrinho
+      clearCart()
+      return true
+
+    } catch (err) {
+      console.error('Erro crítico no checkout:', err)
+      alert('Erro de conexão ao enviar o pedido.')
+      return false
+    }
   }
 
   return { 
@@ -106,10 +165,13 @@ export const useCart = () => {
     isCartModalOpen, 
     isBuilderModalOpen, 
     currentProduct,
-    address, // Exportando o endereço para o Modal usar
+    address,
+    customerName,
+    customerWhatsapp,
+    paymentMethod,
     addToCart,
     removeFromCart,
     updateQuantity,
-    checkoutWhatsApp 
+    executeCheckout 
   }
 }
