@@ -187,7 +187,7 @@ vite.config.ts.timestamp-*
 /backend/vendor
 /backend/Homestead.json
 /backend/Homestead.yaml
-
+/backend/.config/psysh
 # Laravel Archives
 /backend/*.zip
 /backend/*.tar
