@@ -51,6 +51,9 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 | Aqui o Nuxt enviará o Bearer Token no cabeçalho.
 */
+// Rota pública para gerar o Token
+Route::post('/auth/login', [AuthController::class, 'login']);
+
 Route::middleware('auth:sanctum')->group(function () {
 
     // Logout da aplicação
