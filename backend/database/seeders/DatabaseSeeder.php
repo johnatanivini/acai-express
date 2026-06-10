@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             'slug' => 'acai-express',
             'whatsapp_number' => '5585999998888',
             'address_city' => 'Fortaleza',
+            'is_active' => true
         ]);
 
         // 3. Criar Admin da Loja
@@ -51,6 +52,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catAcai->id,
             'name' => 'Açaí 500ml',
             'price' => 15.00,
+            'is_active' => true
         ]);
 
         // 6. Criar Extras (Complementos)

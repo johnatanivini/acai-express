@@ -21,6 +21,13 @@ class VerifyFrontendSecret
 
         // Se a chave não existir ou for diferente, bloqueia com erro 403 (Forbidden)
         if (! $providedSecret || $providedSecret !== $expectedSecret) {
+
+
+            return response()->json([
+                'debug_SaaS' => true,
+                'esperado_no_laravel' => $expectedSecret,
+                'recebido_do_nuxt' => $providedSecret
+            ], 418); // Usamos o status 418 (I'm a teapot) só para sabermos que caiu no nosso debug
             return response()->json([
                 'message' => 'Acesso negado. Requisição não originada da aplicação oficial.'
             ], 403);

@@ -1,3 +1,4 @@
 Product::with('extras')->get();
 Product::with('extras')->get()
 exit
+Store::all()
