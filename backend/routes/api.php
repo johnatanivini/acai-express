@@ -5,6 +5,7 @@ use App\Domains\Catalog\Controllers\CatalogController;
 use App\Domains\Orders\Controllers\OrderController;
 use App\Domains\Payments\Controllers\StripeWebhookController;
 use App\Domains\Tenant\Controllers\TenantController;
+use App\Http\Middleware\VerifyFrontendSecret;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,37 +15,39 @@ use Illuminate\Support\Facades\Route;
 | O cliente não precisa de login para ver a loja e o cardápio.
 */
 
-Route::prefix('tenant/{slug}')->group(function () {
-    // Retorna os dados da loja (Logo, Cores, Endereço, WhatsApp)
-    Route::get('/', [TenantController::class, 'show']);
+Route::middleware([VerifyFrontendSecret::class])->group(
+    function () {
+        Route::prefix('tenant/{slug}')->group(function () {
+            // Retorna os dados da loja (Logo, Cores, Endereço, WhatsApp)
+            Route::get('/', [TenantController::class, 'show']);
 
-    // Retorna o cardápio completo (Categorias, Produtos, Combos e Extras)
-    Route::get('/catalog', [CatalogController::class, 'index']);
+            // Retorna o cardápio completo (Categorias, Produtos, Combos e Extras)
+            Route::get('/catalog', [CatalogController::class, 'index']);
 
-    // Cria um novo pedido (Pode redirecionar pro WhatsApp ou gerar link de pagamento Stripe)
-    Route::post('/orders', [OrderController::class, 'store']);
-});
+            // Cria um novo pedido (Pode redirecionar pro WhatsApp ou gerar link de pagamento Stripe)
+            Route::post('/orders', [OrderController::class, 'store']);
+        });
 
-
-/*
-|--------------------------------------------------------------------------
-| 🛒 Módulo de Pedidos (Rotas Mistas)
-|--------------------------------------------------------------------------
-*/
-// Rota pública para o cliente acompanhar o status do pedido pelo link
-Route::get('/orders/{order_hash}', [OrderController::class, 'show']);
+        /*
+        |--------------------------------------------------------------------------
+        | 🛒 Módulo de Pedidos (Rotas Mistas)
+        |--------------------------------------------------------------------------
+        */
+        // Rota pública para o cliente acompanhar o status do pedido pelo link
+        Route::get('/orders/{order_hash}', [OrderController::class, 'show']);
+        /*
+        |--------------------------------------------------------------------------
+        | 🔒 Módulo de Autenticação (Rotas Públicas de Login)
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('auth')->group(function () {
+            Route::post('/login', [AuthController::class, 'login']);
+        });
+    }
+);
 
 // Webhook do Stripe (Recebe as confirmações de pagamento em background)
 Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
-
-/*
-|--------------------------------------------------------------------------
-| 🔒 Módulo de Autenticação (Rotas Públicas de Login)
-|--------------------------------------------------------------------------
-*/
-Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -52,8 +55,6 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 | Aqui o Nuxt enviará o Bearer Token no cabeçalho.
 */
-// Rota pública para gerar o Token
-Route::post('/auth/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
 

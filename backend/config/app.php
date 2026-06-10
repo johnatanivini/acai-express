@@ -124,5 +124,6 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
-
+    'frontend_url' => env('APP_FRONTEND_URL', 'http://localhost:3000'),
+    'frontend_secret' => env('APP_FRONTEND_SECRET', 'alguma_chave_secreta_para_comunicação_backend_frontend'),
 ];
