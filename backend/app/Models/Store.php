@@ -4,45 +4,47 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Session\Store;
 
-class Order extends Model
+class Store extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'store_id',
-        'user_id',
-        'status',
-        'total_amount',
-        'payment_method',
-        'delivery_address',
-        'stripe_payment_intent',
+        'name',
+        'slug',
+        'logo_url',
+        'primary_color',
+        'whatsapp_number',
+        'address_street',
+        'address_number',
+        'address_neighborhood',
+        'address_city',
+        'stripe_account_id',
+        'stripe_subscription_id',
+        'is_active',
     ];
 
-    /**
-     * Casts para garantir que os dados JSON sejam tratados como array no PHP
-     */
     protected $casts = [
-        'delivery_address' => 'array',
-        'total_amount' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
 
-    public function store()
+    public function categories()
     {
-        return $this->belongsTo(Store::class);
+        return $this->hasMany(Category::class);
     }
 
-    public function user()
+    public function products()
     {
-        return $this->belongsTo(User::class);
+        return $this->hasManyThrough(Product::class, Category::class);
     }
 
-    /**
-     * Os itens individuais do pedido (ex: 1 Açaí Grande + 1 Adicional Nutella)
-     */
-    public function items()
+    public function extras()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(Extra::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
     }
 }
