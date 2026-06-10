@@ -1,11 +1,12 @@
 <?php
 
-use App\Domais\Auth\Controllers\AuthController;
-use App\Domais\Catalog\Controllers\CatalogController;
-use App\Domais\Orders\Controllers\OrderController;
-use App\Domais\Payments\Controllers\StripeWebhookController;
-use App\Domais\Tenant\Controllers\TenantController;
+use App\Domains\Auth\Controllers\AuthController;
+use App\Domains\Catalog\Controllers\CatalogController;
+use App\Domains\Orders\Controllers\OrderController;
+use App\Domains\Payments\Controllers\StripeWebhookController;
+use App\Domains\Tenant\Controllers\TenantController;
 use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | 🏪 Módulo Tenant & Catálogo (Rotas Públicas)
