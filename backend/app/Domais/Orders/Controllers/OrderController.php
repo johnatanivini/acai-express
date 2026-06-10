@@ -21,7 +21,6 @@ class OrderController extends Controller
 
         // 2. Busca os pedidos APENAS da loja deste administrador
         $orders = Order::with('items') // Traz os itens (Açaí, Extras) junto com o pedido
-            ->where('store_id', $user->store_id)
             ->orderBy('created_at', 'desc') // Mais recentes primeiro
             ->get();
 
