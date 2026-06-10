@@ -2,3 +2,17 @@ Product::with('extras')->get();
 Product::with('extras')->get()
 exit
 Store::all()
+Order::all()
+Order::all()
+Order::find(1)
+Order::with('extra')->find(1)
+Order::with('extraS')->find(1)
+Order::with('extras')->find(1)
+Order::with('extras')->find(1)
+Order::find(2)
+Order::find(3)
+Order::find(3)->with('extras');
+Order::find(1)->with('extras');
+Order::find(2)->with('extras');
+Order::find(2)->with('extras')->get();
+Order::find(2)->with('extra')->get();

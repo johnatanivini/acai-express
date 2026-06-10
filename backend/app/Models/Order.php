@@ -45,4 +45,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+
+    public function extras()
+    {
+        return $this->hasManyThrough(Extra::class, OrderItem::class, 'order_id', 'id', 'id', 'extra_id');
+    }
 }
