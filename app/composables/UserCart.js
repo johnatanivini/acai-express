@@ -88,15 +88,19 @@ export const useCart = () => {
     const slug = route.params.slug // Pega o slug da URL atual dinamicamente
 
     // 1. Monta o payload exato que o nosso Laravel espera receber
-    const payload = {
+   const payload = {
       customer_name: customerName.value,
       customer_whatsapp: customerWhatsapp.value,
       payment_method: paymentMethod.value,
       delivery_address: `${address.value.rua}, ${address.value.numero} - ${address.value.bairro} ${address.value.complemento ? '(' + address.value.complemento + ')' : ''}`,
+      
+      // ATUALIZAÇÃO AQUI: Passando as informações do tamanho escolhido
       items: cart.value.map(item => ({
-        product_id: item.id, // ID real vindo do banco
+        product_id: item.id,
         quantity: item.quantity,
-        extras: item.extras ? item.extras.map(e => e.id) : [] // Array de IDs de adicionais reais
+        size_name: item.size ? item.size.name : null,  // ex: 'Médio'
+        size_price: item.size ? item.size.price : 0,  // ex: 18.90
+        extras: item.extras ? item.extras.map(e => e.id) : []
       }))
     }
 
@@ -148,7 +152,20 @@ export const useCart = () => {
       // Abre o app do WhatsApp
       window.open(whatsappUrl, '_blank')
 
-      // Limpa os estados locais do carrinho
+     
+      // Dentro do método de checkout após o sucesso da API:
+      if (data.value && data.value.order_hash) {
+        const hash = data.value.order_hash;
+
+        // Dispara o WhatsApp...
+
+        // Limpa o carrinho
+        clearCart();
+
+        // Redireciona para a nova URL limpa e segura
+        navigateTo(`/order/${hash}`);
+      }
+
       clearCart()
       return true
 

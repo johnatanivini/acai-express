@@ -4,10 +4,6 @@ export const useApi = (request, opts) => {
   const config = useRuntimeConfig()
   const token = useCookie('auth_token')
 
-  // DEDO DURO: Adicione este console.log temporário aqui!
-  // Ele vai printar no terminal do seu VS Code/Docker do Nuxt para vermos se o Nuxt está lendo a senha do .env
-  console.log('--- DEBUG NUXT --- Chave lida pelo Nuxt:', config.public.frontendSecret)
-
   return useFetch(request, {
     baseURL: config.public.apiBaseUrl,
     
