@@ -1,5 +1,10 @@
 <template>
-  <div class="min-h-screen bg-[#0b0514] text-white font-sans pb-10 flex flex-col justify-between">
+  <div  v-if="order.status === 'delivered'"  class="min-h-screen bg-[#0b0514] text-white font-sans pb-10 flex flex-col justify-between">
+    <div class="flex-grow container mx-auto max-w-xl px-4 pt-6">
+      <OrderReview :order-hash="orderHash"/>
+    </div>
+  </div>
+  <div v-else class="min-h-screen bg-[#0b0514] text-white font-sans pb-10 flex flex-col justify-between">
     
     <div v-if="pending && !order" class="flex-grow flex flex-col items-center justify-center gap-4">
       <span class="animate-spin inline-block w-8 h-8 border-4 border-[#c31f75] border-t-transparent rounded-full"></span>
@@ -14,7 +19,6 @@
         Voltar para o Cardápio
       </button>
     </div>
-
     <div v-else class="flex-grow container mx-auto max-w-xl px-4 pt-6">
       
       <div class="bg-[#1a0f2e] border border-[#2a1c44] rounded-2xl p-6 text-center mb-6 shadow-xl">
