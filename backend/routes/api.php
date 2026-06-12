@@ -4,6 +4,7 @@ use App\Domains\Auth\Controllers\AuthController;
 use App\Domains\Catalog\Controllers\CatalogController;
 use App\Domains\Orders\Controllers\OrderController;
 use App\Domains\Payments\Controllers\StripeWebhookController;
+use App\Domains\Review\Controllers\ReviewController;
 use App\Domains\Tenant\Controllers\TenantController;
 use App\Http\Middleware\VerifyFrontendSecret;
 use Illuminate\Support\Facades\Route;
@@ -43,6 +44,8 @@ Route::middleware([VerifyFrontendSecret::class])->group(
         Route::prefix('auth')->group(function () {
             Route::post('/login', [AuthController::class, 'login']);
         });
+
+        Route::post('/orders/{order_hash}/review', [ReviewController::class, 'store']);
     }
 );
 

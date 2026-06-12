@@ -80,10 +80,11 @@ class OrderController extends Controller
             'items'               => 'required|array|min:1',
             'items.*.product_id'  => 'required|exists:products,id',
             'items.*.quantity'    => 'required|integer|min:1',
+            'items.*.size_name'   => 'nullable|string', // <-- Nova linha
+            'items.*.size_price'  => 'nullable|numeric', // <-- Nova linha
             'items.*.extras'      => 'array',
             'items.*.extras.*'    => 'exists:extras,id',
         ]);
-
         // 3. Inicia a transação com o banco de dados
         return DB::transaction(function () use ($request, $store) {
 
@@ -105,37 +106,38 @@ class OrderController extends Controller
             $orderTotal = 0;
 
             // 4. Varre os itens enviados pelo Nuxt calculando os valores reais do banco
+            // Dentro do seu foreach de itens, mude a linha do $itemSubtotal:
             foreach ($request->items as $itemData) {
                 $product = Product::withoutGlobalScopes()->findOrFail($itemData['product_id']);
 
-                $itemSubtotal = $product->price;
-                $selectedExtras = [];
+                // REGRA COMPENSATÓRIA: Se o front enviou um size_price válido, usa ele. 
+                // Caso contrário, usa o preço base do produto vindo do banco.
+                $basePrice = isset($itemData['size_price']) && $itemData['size_price'] > 0
+                    ? (float) $itemData['size_price']
+                    : (float) $product->price;
 
-                // Se o item tiver adicionais (Nutella, Leite Ninho, etc.)
+                $itemSubtotal = $basePrice;
+                $extrasSnapshot = [];
+
+                // O restante do loop de extras e o attach continuam exatamente iguais...
                 if (!empty($itemData['extras'])) {
                     foreach ($itemData['extras'] as $extraId) {
                         $extra = Extra::withoutGlobalScopes()->findOrFail($extraId);
                         $itemSubtotal += $extra->price;
-                        $selectedExtras[] = [
-                            'id'    => $extra->id,
-                            'name'  => $extra->name,
-                            'price' => $extra->price,
-                        ];
+                        $extrasSnapshot[] = ['id' => $extra->id, 'name' => $extra->name, 'price' => $extra->price];
                     }
                 }
 
-                // Multiplica pela quantidade de açaís idênticos solicitada
                 $itemTotal = $itemSubtotal * $itemData['quantity'];
                 $orderTotal += $itemTotal;
 
-                // Cria o item do pedido associando o produto e os extras selecionados no campo JSON.
-                $order->items()->create([
-                    'product_id'      => $product->id,
-                    'product_name'    => $product->name,
-                    'unit_price'      => $product->price,
-                    'quantity'        => $itemData['quantity'],
-                    'selected_extras' => $selectedExtras,
-                    'total_price'     => $itemTotal,
+                $order->products()->attach($product->id, [
+                    'quantity'          => $itemData['quantity'],
+                    'price_at_purchase' => $basePrice,
+                    'unit_price'        => $basePrice,
+                    'total_price'       => $itemTotal,
+                    'product_name'      => $product->name,
+                    'extras'            => json_encode($extrasSnapshot)
                 ]);
             }
 
@@ -146,8 +148,43 @@ class OrderController extends Controller
             return response()->json([
                 'message' => 'Pedido enviado com sucesso para a cozinha!',
                 'order_id' => $order->id,
+                'order_hash' => $order->order_hash,
                 'total' => $orderTotal
             ], 201);
         });
+    }
+
+    /**
+     * Rota pública de acompanhamento por Hash
+     */
+    public function show($order_hash)
+    {
+        // Buscamos o pedido pelo hash carregando junto os dados da loja (para sabermos o WhatsApp do lojista)
+        $order = Order::withoutGlobalScopes()
+            ->with(['store' => function ($query) {
+                $query->withoutGlobalScopes();
+            }])
+            ->where('order_hash', $order_hash)
+            ->first();
+
+        if (!$order) {
+            return response()->json(['message' => 'Pedido não localizado.'], 404);
+        }
+
+        return response()->json([
+            'id'            => $order->id, // ID interno se necessário, ou oculte
+            'order_hash'    => $order->order_hash,
+            'customer_name' => $order->customer_name,
+            'status'        => $order->status,
+            'total'         => (float) $order->total_amount,
+            'payment_method' => $order->payment_method,
+            'address'       => $order->delivery_address,
+            'store'         => [
+                'name'            => $order->store->name,
+                'whatsapp_number' => $order->store->whatsapp_number,
+                'slug'            => $order->store->slug,
+            ],
+            'updated_at'    => $order->updated_at->toIso8601String()
+        ]);
     }
 }
