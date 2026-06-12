@@ -21,4 +21,14 @@ class Category extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function extras()
+    {
+        return $this->hasMany(Extra::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 }

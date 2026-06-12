@@ -3,8 +3,10 @@
 namespace App\Domains\Catalog\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\Store;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CatalogController extends Controller
 {
@@ -32,6 +34,13 @@ class CatalogController extends Controller
             }])
             ->get();
 
+
+        // 2. Calcula a média e a quantidade de avaliações direto no banco (Alta Performance)
+        $reviewStats = DB::table('reviews')
+            ->where('store_id', $store->id)
+            ->selectRaw('AVG(final_score) as average, COUNT(*) as total')
+            ->first();
+
         // 3. Monta a resposta estruturada para o Nuxt consumir
         return response()->json([
             'store' => [
@@ -40,6 +49,8 @@ class CatalogController extends Controller
                 'logo_url' => $store->logo_url,
                 'primary_color' => $store->primary_color,
                 'whatsapp_number' => $store->whatsapp_number,
+                'rating_average' => $reviewStats->average ? (float) round($reviewStats->average, 1) : null,
+                'rating_count'   => (int) $reviewStats->total,
             ],
             'menu' => $categories
         ]);

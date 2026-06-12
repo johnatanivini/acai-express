@@ -33,3 +33,6 @@ $order->status = 'delivered';
 $order->save();
 exit
 $order = Order::withoutGlobalScopes()->where('order_hash', 'kUKRwu7HVBTsiWIA7gSXGK7iq40S3T0Y')->first();
+$order = Order::withoutGlobalScopes()->where('order_hash', 'hOnKWJVULSy4wUwSHtXcxTyYUx6WCsb1')->first();
+$order->status = 'delivered';
+$order->save();
